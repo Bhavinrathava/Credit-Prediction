@@ -14,7 +14,7 @@ from skopt.space import Integer, Real
 from sklearn.linear_model import LogisticRegression
 
 import os 
-
+import json 
 import joblib
 
 def read_dataset():
@@ -32,7 +32,7 @@ def categorize_purpose(purpose):
 
 # Define all possible categories for Purpose to ensure consistent columns
 ALL_PURPOSE_CATEGORIES = ['High Frequency Purpose', 'Medium Frequency Purpose', 'Low Frequency Purpose']
-
+ALL_GENDER_CATEGORIES = ['male', 'female']
 def process_dataset(df):
     # Remove the columns which are not required
     df = df.drop(['Unnamed: 0'], axis=1)
@@ -46,6 +46,10 @@ def process_dataset(df):
 
     # Convert Sex to one-hot encoding
     df_sex = pd.get_dummies(df["Sex"]).astype(int)
+    for category in ALL_GENDER_CATEGORIES:
+        if category not in df_sex:
+            df_sex[category] = 0  # Add missing columns with 0s
+            
     df = pd.concat([df, df_sex], axis=1).drop(columns=["Sex"])
 
     # Convert Housing to Label Encoding
@@ -84,7 +88,29 @@ def process_dataset(df):
     risk_map = {"good": 1, "bad": 0}
     df['Risk'] = df['Risk'].map(risk_map)
 
+    # save column order to a file 
+    column_order = list(df.columns)
+
+    if not os.path.exists("Data/column_order.json"):
+
+        with open("Data/column_order.json", "w") as f:
+            json.dump(column_order, f)
+    else:
+
+        with open("Data/column_order.json", "r") as f:
+            column_order = json.load(f)
+
+            df = df[column_order]
+
+
     return df
+
+def load_model(model_path):
+    if os.path.exists(model_path):
+        model = joblib.load(model_path)
+        return model
+    else:
+        return None
 
 def train_model(df, model_path=None):
     # Split the data into train and test
@@ -140,6 +166,8 @@ def train_model(df, model_path=None):
 
     # Save the new model if it performs better than the existing model
     if new_accuracy > existing_accuracy:
+        if(model_path == None):
+            model_path = 'Models/RFModel.pkl'
         print(f"New model performs better. Saving model to {model_path}...")
         joblib.dump(best_model, model_path)
     else:
@@ -199,6 +227,8 @@ def train_LR_model(df, model_path=None):
 
     # Save the new model if it performs better than the existing model
     if new_accuracy > existing_accuracy:
+        if(model_path == None):
+            model_path = 'Models/LRModel.pkl'
         print(f"New model performs better. Saving model to {model_path}...")
         joblib.dump(best_model, model_path)
     else:
