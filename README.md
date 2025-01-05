@@ -1,6 +1,3 @@
-Here’s a **README.md** file for your project:
-
----
 
 # **Kafka-Based Real-Time Data Processing with Flask, Streamlit, and Docker**
 
