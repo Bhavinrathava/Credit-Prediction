@@ -25,6 +25,17 @@ services:
     ports:
       - "6379:6379"
 
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: credit_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
   producer:
     build:
       context: ./Producer
@@ -38,6 +49,7 @@ services:
     depends_on:
       - kafka
       - redis
+      - db
     command: ["python", "Kafka_Consumer_Flagging.py"]
 
   consumer2:
@@ -46,6 +58,7 @@ services:
     depends_on:
       - kafka
       - redis
+      - db
     command: ["python", "Kafka_Consumer_Retraining.py"]
 
   flask_backend:
@@ -55,6 +68,7 @@ services:
       - "5000:5000"
     depends_on:
       - redis
+      - db
     command: ["python", "dashboard_backend.py"]
 
   streamlit_frontend:
@@ -65,3 +79,6 @@ services:
     depends_on:
       - flask_backend
     command: ["streamlit", "run", "Frontend.py", "--server.port=8501", "--server.address=0.0.0.0"]
+
+volumes:
+  db_data:

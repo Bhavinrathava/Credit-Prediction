@@ -2,17 +2,18 @@ import pandas as pd
 import json
 import time
 from kafka import KafkaProducer
-import redis 
+import redis
+from config import config
 
 # Initialize Redis
-redis_client = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
+redis_client = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT, decode_responses=True)
 
 # Load CSV data
-data = pd.read_csv("Data/german_credit_data.csv")
+data = pd.read_csv(config.GERMAN_CREDIT_DATA_PATH)
 
 # Initialize Kafka producer
 producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS,
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 

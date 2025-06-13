@@ -5,21 +5,39 @@ import pandas as pd
 from main import process_dataset, train_model, train_LR_model, load_model
 import redis
 from datetime import datetime
+from config import config
 import os
+import psycopg2
 
 # Initialize Kafka consumer
 consumer = KafkaConsumer(
     'batch-topic',
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS,
     auto_offset_reset='earliest',
     group_id='customer-flagging',
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
 
-redis_client = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
+redis_client = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT, decode_responses=True)
 
-# Path to the output file
-output_file = "Data/high_risk_data.csv"
+# Database connection
+conn = psycopg2.connect(
+    dbname="credit_db",
+    user="user",
+    password="password",
+    host="db"
+)
+cur = conn.cursor()
+
+# Create table if not exists
+cur.execute("""
+CREATE TABLE IF NOT EXISTS flagged_customers (
+    id SERIAL PRIMARY KEY,
+    customer_data JSONB,
+    flagged_timestamp TIMESTAMP
+)
+""")
+conn.commit()
 
 def ensure_csv_columns(df, output_file):
     """
@@ -64,19 +82,18 @@ for message in consumer:
 
     print(f"Detected {len(high_risk_data)} high risk customers.")
 
-    if not high_risk_data.empty:
-        # Add timestamp to high-risk data
-        high_risk_data['flagged_timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+if not high_risk_data.empty:
+    # Add timestamp to high-risk data
+    high_risk_data['flagged_timestamp'] = datetime.now()
 
-        # Ensure CSV columns are consistent
-        ensure_csv_columns(high_risk_data, output_file)
+    # Insert data into database
+    for _, row in high_risk_data.iterrows():
+        cur.execute("""
+        INSERT INTO flagged_customers (customer_data, flagged_timestamp)
+        VALUES (%s, %s)
+        """, (json.dumps(row.to_dict()), row['flagged_timestamp']))
+    conn.commit()
+    print("Inserted high risk data into database")
 
-        # Append to CSV
-        try:
-            high_risk_data.to_csv(output_file, mode='a', header=not os.path.exists(output_file), index=False)
-            print(f"Appended high risk data to '{output_file}'")
-        except Exception as e:
-            print(f"Error saving high risk data: {e}")
-
-    redis_client.incr('consumer_flag_batch_count')
-    print("Finished flagging Customers on batch.\n")
+redis_client.incr('consumer_flag_batch_count')
+print("Finished flagging Customers on batch.\n")

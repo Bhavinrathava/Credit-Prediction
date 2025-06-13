@@ -2,10 +2,11 @@ import streamlit as st
 import requests
 import pandas as pd
 import time
+from config import config
 
 # Backend URL for metrics
-METRICS_API_URL = "http://localhost:5000/metrics"
-FLAGGED_CUSTOMERS_API_URL = "http://localhost:5000/flagged-customers"  # New API for flagged customers data
+METRICS_API_URL = config.METRICS_API_URL
+FLAGGED_CUSTOMERS_API_URL = config.FLAGGED_CUSTOMERS_API_URL  # New API for flagged customers data
 
 # Set up Streamlit app layout
 st.title("Kafka Metrics Dashboard")

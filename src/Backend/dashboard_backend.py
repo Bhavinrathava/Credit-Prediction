@@ -1,10 +1,11 @@
 from flask import Flask, jsonify
 import redis
-import pandas as pd 
+import pandas as pd
+from config import config
 
 # Initialize Flask app and Redis
 app = Flask(__name__)
-redis_client = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
+redis_client = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT, decode_responses=True)
 
 @app.route('/metrics', methods=['GET'])
 def get_metrics():
@@ -21,7 +22,7 @@ def get_metrics():
 def get_flagged_customers():
     # Read high-risk customer data from CSV
     try:
-        data = pd.read_csv("Data/high_risk_data.csv")
+        data = pd.read_csv(config.HIGH_RISK_DATA_PATH)
         return data.to_dict(orient='records')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
