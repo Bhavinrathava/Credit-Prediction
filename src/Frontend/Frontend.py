@@ -8,7 +8,9 @@ from config import config
 METRICS_API_URL = config.METRICS_API_URL
 FLAGGED_CUSTOMERS_API_URL = config.FLAGGED_CUSTOMERS_API_URL  # New API for flagged customers data
 
-# Set up Streamlit app layout
+# Data Drift API URL
+DATA_DRIFT_API_URL = "http://localhost:5000/data-drift"
+
 st.title("Kafka Metrics Dashboard")
 st.markdown("Real-time metrics from the Kafka Producer and Consumers.")
 
@@ -21,7 +23,19 @@ consumer2_batches = st.empty()
 st.markdown("### Flagged Customers Over Time")
 flagged_customers_chart = st.empty()
 
-# Fetch metrics from Flask API
+# Fetch data drift statistics
+def fetch_data_drift():
+    try:
+        response = requests.get(DATA_DRIFT_API_URL)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"Failed to fetch data drift statistics: {response.status_code}")
+            return None
+    except Exception as e:
+        st.error(f"Error fetching data drift statistics: {e}")
+        return None
+
 def fetch_metrics():
     try:
         response = requests.get(METRICS_API_URL)
@@ -47,12 +61,21 @@ def fetch_flagged_customers():
         st.error(f"Error fetching flagged customers data: {e}")
         return None
 
-# Main loop for live metrics and graph updates
+# Data Drift section
+st.markdown("### Data Drift Statistics")
+data_drift_stats = st.empty()
+
 st.markdown("### Live Metrics")
 history = pd.DataFrame(columns=["Time", "Producer", "Consumer Flag", "Consumer Retrain"])
 
 while True:
-    # Fetch and update live metrics
+    # Fetch and display data drift statistics
+    drift_stats = fetch_data_drift()
+    if drift_stats:
+        data_drift_stats.metric("Historic Count", drift_stats.get("historic_count", 0))
+        data_drift_stats.metric("Recent Count", drift_stats.get("recent_count", 0))
+        data_drift_stats.metric("Drift Statistic", drift_stats.get("drift_statistic", 0))
+
     metrics = fetch_metrics()
     if metrics:
         current_time = time.strftime("%H:%M:%S")

@@ -1,7 +1,7 @@
 
 # **Kafka-Based Real-Time Data Processing with Flask, Streamlit, and Docker**
 
-This project implements a real-time data processing pipeline using **Kafka**, **Redis**, **Flask**, **Streamlit**, and **Docker**. The pipeline processes streaming data to flag high-risk customers, retrain machine learning models, and provide a live dashboard for monitoring the metrics and flagged customers.
+This project implements a real-time data processing pipeline using **Kafka**, **Redis**, **Flask**, **Streamlit**, **PostgreSQL**, and **Docker**. The pipeline processes streaming data to flag high-risk customers, retrain machine learning models, and provide a live dashboard for monitoring the metrics and flagged customers.
 
 ---
 
@@ -16,8 +16,8 @@ This project implements a real-time data processing pipeline using **Kafka**, **
 ├── streamlit.Dockerfile         # Dockerfile for Streamlit dashboard
 ├── requirements.txt             # Python dependencies for all services
 ├── producer.py                  # Kafka producer script
-├── retrain_consumer.py          # Kafka consumer for model retraining
-├── flagging_consumer.py         # Kafka consumer for high-risk flagging
+├── retrain_consumer.py          # Kafka consumer for model retraining, now storing data in PostgreSQL
+├── flagging_consumer.py         # Kafka consumer for high-risk flagging, now storing data in PostgreSQL
 ├── flask_backend/
 │   └── app.py                   # Flask backend for metrics and flagged data
 ├── streamlit_frontend/
@@ -39,11 +39,12 @@ This project implements a real-time data processing pipeline using **Kafka**, **
 
 2. **Flagging Consumer**:
    - Processes streamed data from Kafka to identify high-risk customers.
-   - Saves flagged customers to a shared CSV file (`high_risk_data.csv`).
+   - Stores flagged customers in a PostgreSQL database.
    - Updates Redis with the number of processed batches.
 
 3. **Retraining Consumer**:
    - Processes streamed data to retrain machine learning models (`RFModel.pkl` and `LRModel.pkl`).
+   - Stores retrained models in a PostgreSQL database.
    - Updates Redis with the number of processed batches.
 
 4. **Flask Backend**:

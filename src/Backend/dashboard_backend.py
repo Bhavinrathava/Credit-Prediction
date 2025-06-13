@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import redis
 import pandas as pd
 from config import config
@@ -26,6 +26,25 @@ def get_flagged_customers():
         return data.to_dict(orient='records')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-if __name__ == "__main__":
+@app.route('/data-drift', methods=['GET'])
+def get_data_drift():
+    try:
+        # Load historic and recent data
+        historic_data = pd.read_sql("SELECT * FROM flagged_customers WHERE flagged_timestamp < NOW() - INTERVAL '1 hour'", conn)
+        recent_data = pd.read_sql("SELECT * FROM flagged_customers WHERE flagged_timestamp >= NOW() - INTERVAL '1 hour'", conn)
+
+        # Calculate drift statistics (e.g., using KL divergence or other methods)
+        # For simplicity, let's assume we calculate a simple count difference
+        historic_count = len(historic_data)
+        recent_count = len(recent_data)
+        drift_statistic = recent_count - historic_count
+
+        return jsonify({
+            "historic_count": historic_count,
+            "recent_count": recent_count,
+            "drift_statistic": drift_statistic
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
     app.run(host='0.0.0.0', port=5000)
